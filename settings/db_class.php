@@ -1,5 +1,4 @@
 <?php
-// db_class.php — Simple PDO wrapper that your models can extend/use.
 require_once __DIR__ . '/db_cred.php';
 
 class Db {
@@ -22,18 +21,17 @@ class Db {
         try {
             $this->db = new PDO($dsn, DB_USER, DB_PASS, $opts);
         } catch (PDOException $e) {
-            // In production, log $e->getMessage()
             exit('Database connection failed.');
         }
     }
 
-    // Optional transaction helpers
+
     public function begin(): void   { $this->db->beginTransaction(); }
     public function commit(): void  { $this->db->commit(); }
     public function rollback(): void{
         if ($this->db->inTransaction()) { $this->db->rollBack(); }
     }
 
-    // If you ever need raw PDO
+
     public function pdo(): PDO { return $this->db; }
 }

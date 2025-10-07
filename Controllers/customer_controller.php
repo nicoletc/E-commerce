@@ -50,7 +50,7 @@ function register_user_ctr(
 ): array {
     $user = new User();
 
-    // Normalize
+
     $name    = trim($name);
     $email   = strtolower(trim($email));
     $country = trim($country);

@@ -63,11 +63,11 @@ function require_role(array $allowed, ?string $to = null): void {
 
 function require_admin(): void {
     if (!is_logged_in()) {
-        header('Location: ../view/login.php'); // from /admin/ to /view/
+        header('Location: ../view/login.php'); 
         exit;
     }
     if (!is_admin()) {
-        header('Location: ../index.php'); // block non-admins
+        header('Location: ../index.php'); 
         exit;
     }
 }

@@ -1,5 +1,4 @@
 <?php
-// Actions/login_customer_action.php
 header('Content-Type: application/json; charset=utf-8');
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 ini_set('display_errors','1'); error_reporting(E_ALL);
@@ -19,7 +18,6 @@ try {
     if (($res['status'] ?? '') === 'success') {
         $u = $res['user'];
 
-        // Set required session variables
         $_SESSION['customer_id']    = $u['customer_id'];
         $_SESSION['user_role']      = $u['user_role'];       // 1 admin, 2 customer
         $_SESSION['customer_name']  = $u['customer_name'];

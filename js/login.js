@@ -1,4 +1,3 @@
-// /js/login.js
 $(document).ready(function () {
   $('#login-form').on('submit', function (e) {
     e.preventDefault();
@@ -14,7 +13,7 @@ $(document).ready(function () {
       return Swal.fire({icon:'error', title:'Invalid email', text:'Enter a valid email address.'});
     }
 
-    // Optional UX: disable button to prevent double-submits
+
     const $btn = $('#login-btn');
     $btn.prop('disabled', true);
 

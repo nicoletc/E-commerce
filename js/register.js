@@ -1,4 +1,3 @@
-// /js/register.js
 $(document).ready(function () {
   $('#register-form').on('submit', function (e) {
     e.preventDefault();
@@ -10,15 +9,15 @@ $(document).ready(function () {
     const country = $('#country').val().trim();
     const city    = $('#city').val().trim();
 
-    // Prefer intl-tel-input validation + E.164 formatted number
+
     const hasITI  = typeof window.iti !== 'undefined';
     const phoneOk = hasITI ? window.iti.isValidNumber() : /^\+?[0-9\s\-()]{7,15}$/.test($('#phone_number').val().trim());
-    const phone   = hasITI ? window.iti.getNumber() : $('#phone_number').val().trim(); // e.g., +233241234567
+    const phone   = hasITI ? window.iti.getNumber() : $('#phone_number').val().trim(); 
 
-    // --- Client validation ---
+
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const passRe  = /^(?=.*\d).{8,}$/;                // ≥8, includes a number
-    const placeRe = /^[A-Za-z\s\-'.()]{2,30}$/;       // for city
+    const passRe  = /^(?=.*\d).{8,}$/;                
+    const placeRe = /^[A-Za-z\s\-'.()]{2,30}$/;       
 
     if (!name || !email || !pass || !cpass || !country || !city || !phone) {
       return Swal.fire({icon:'error', title:'Oops...', text:'Please fill in all fields!'});
@@ -42,7 +41,7 @@ $(document).ready(function () {
       return Swal.fire({icon:'error', title:'Invalid contact', text:'Provide a valid phone number for the selected country.'});
     }
 
-    // --- AJAX (no reload) ---
+
     $.ajax({
       url: '../Actions/register_customer_action.php',
       type: 'POST',
@@ -52,9 +51,8 @@ $(document).ready(function () {
         name,
         email,
         password: pass,
-        country,                 // e.g., "Ghana" (from dropdown)
-        city,
-        phone_number: phone      // e.g., +233241234567 (E.164)
+        country,                
+        phone_number: phone      
       }),
       success: function (res) {
         if (res.status === 'success' || res.ok === true) {
