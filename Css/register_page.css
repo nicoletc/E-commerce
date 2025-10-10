@@ -133,3 +133,40 @@ body.loaded .slide-right{ opacity:1; transform: translateX(0) translateY(0); fil
   .auth-form{ padding:28px 22px; }
   .auth-shell{ padding:40px 16px; } 
 }
+
+/* ===== Dark Theme for Country Dropdown ===== */
+.iti__country-list {
+  background-color: #151022 !important;     /* deep dark panel */
+  color: #f1edff !important;                /* soft white text */
+  border: 1px solid rgba(255,255,255,0.15) !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.6) !important;
+}
+
+.iti__country {
+  color: #ddd !important;
+  background: transparent !important;
+}
+
+.iti__country:hover,
+.iti__country.iti__highlight {
+  background-color: rgba(116,41,236,0.25) !important; /* violet highlight */
+  color: #fff !important;
+}
+
+.iti__dial-code {
+  color: #bdb6d6 !important; /* muted number tone */
+}
+
+.iti__divider {
+  border-color: rgba(255,255,255,0.1) !important;
+}
+
+.iti__flag-container {
+  background-color: transparent !important;
+}
+
+/* optional: darken the input when dropdown is open */
+.iti__selected-flag {
+  background-color: #1e1830 !important;
+  border-radius: 8px 0 0 8px;
+}

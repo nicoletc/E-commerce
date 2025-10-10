@@ -53,7 +53,7 @@ $first    = $customer ? explode(' ', trim($customer))[0] : null;
     <div class="hero-copy">
       <h1 class="blur-words">
         <?php if ($first): ?>Hey <?= htmlspecialchars($first) ?> —<?php endif; ?>
-        Discover the best <span class="accent">Products & Deals</span>
+         <span class="accent">Discover the best Products & Deals</span>
       </h1>
       <p class="sub blur-words delay-150">Curated items, fast delivery, and secure checkout — all in one place.</p>
 
