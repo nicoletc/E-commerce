@@ -27,7 +27,7 @@ function save_uploaded_image_strict(string $field, int $user_id, int $product_id
   $tmp  = $_FILES[$field]['tmp_name'];
   $name = basename($_FILES[$field]['name']);
   $ext  = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-  if (!in_array($ext, ['jpg','jpeg','png','gif','webp'])) return ['ok'=>false,'error'=>'Unsupported type'];
+  if (!in_array($ext, ['jpg','jpeg','png','gif','webp', 'avif'])) return ['ok'=>false,'error'=>'Unsupported type'];
 
   $baseDir = __DIR__ . '/../uploads/u'.$user_id.'/products/p'.$product_id;
   @mkdir($baseDir, 0775, true);
