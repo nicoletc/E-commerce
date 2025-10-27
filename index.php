@@ -1,4 +1,5 @@
 <?php
+
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 $loggedIn = !empty($_SESSION['customer_id']);
@@ -41,7 +42,7 @@ $first    = $customer ? explode(' ', trim($customer))[0] : null;
         <a class="btn" href="view/register.php">Get Started</a>
       <?php else: ?>
         <?php if ($isAdmin): ?>
-          <a class="btn ghost" href="Admin/category.php">Category</a>
+          <a class="btn ghost" href="Admin/category.php">Dashboard</a>
         <?php endif; ?>
         <a class="btn" href="Actions/logout.php">Logout</a>
       <?php endif; ?>
