@@ -3,12 +3,11 @@ $(function () {
 
   // Helpers
   const toast = (icon, title, text='') => Swal.fire({icon,title,text});
-  const esc = s => String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+  const esc   = s => String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[m]));
   const money = v => (Number(v)||0).toFixed(2);
 
-  // Populate category + brand selects (uses your existing endpoints)
+  // ---------- Dropdowns ----------
   function loadCatsAndBrands() {
-    // categories
     $.getJSON('../Actions/fetch_category_action.php', (res) => {
       const $sel = $('#product_cat').empty();
       if (res.status === 'success' && res.data?.length) {
@@ -19,7 +18,6 @@ $(function () {
       }
     });
 
-    // brands
     $.getJSON('../Actions/fetch_brand_action.php', (res) => {
       const $sel = $('#product_brand').empty();
       if (res.status === 'success' && res.data?.length) {
@@ -31,7 +29,7 @@ $(function () {
     });
   }
 
-  // Render table
+  // ---------- Table render ----------
   function renderRows(items) {
     if (!items || !items.length) {
       $rows.html('<tr><td colspan="5">No products yet — add one above.</td></tr>');
@@ -39,11 +37,14 @@ $(function () {
     }
     let html = '';
     items.forEach(p => {
+      const thumb = p.product_image
+        ? `<img src="../${esc(p.product_image)}" alt="" style="width:44px;height:44px;border-radius:10px;object-fit:cover;border:1px solid rgba(255,255,255,.08)">`
+        : '';
       html += `
         <tr data-id="${p.product_id}">
           <td>
             <div style="display:flex;gap:10px;align-items:center">
-              ${p.product_image ? `<img src="../${esc(p.product_image)}" alt="" style="width:44px;height:44px;border-radius:10px;object-fit:cover;border:1px solid rgba(255,255,255,.08)">` : ''}
+              ${thumb}
               <div>
                 <div style="font-weight:600">${esc(p.product_title)}</div>
                 <small class="muted">${esc(p.product_desc || '')}</small>
@@ -68,34 +69,80 @@ $(function () {
     }).fail(()=>toast('error','Error','Request failed'));
   }
 
-  // Add / Update form
+  // ---------- Add / Update (keeps your original endpoints) ----------
   $('#product-form').on('submit', function (e) {
     e.preventDefault();
-    const fd = new FormData(this);
-    const pid = $('#product_id').val().trim();
 
+    const fd  = new FormData(this);
+    const pid = ($('#product_id').val() || '').trim();
     const url = pid ? '../Actions/update_product_action.php' : '../Actions/add_product_action.php';
 
     $.ajax({
-      url, type:'POST', data: fd, processData:false, contentType:false, dataType:'json',
-      success: (res)=>{
-        if (res.status === 'success') {
-          toast('success', pid ? 'Updated' : 'Added', res.message || '');
-          this.reset();
-          $('#product_id').val('');
-          $('#form-title').text('Add product');
-          $('#product-submit').text('Add');
-          $('#product-cancel').hide();
-          loadAll();
+      url,
+      type:'POST',
+      data: fd,
+      processData:false,
+      contentType:false,
+      dataType:'json'
+    }).done((res)=>{
+      if (res.status !== 'success') {
+        return toast('error','Error', res.message || 'Operation failed');
+      }
+
+      // Figure out the product id to use for image upload
+      const productId = pid ? parseInt(pid,10) : parseInt(res.product_id,10);
+      const file = ($('#product_image')[0] && $('#product_image')[0].files) ? $('#product_image')[0].files[0] : null;
+
+      // If no file chosen, we're done
+      if (!file || !productId) {
+        toast('success', pid ? 'Updated' : 'Added', res.message || '');
+        this.reset();
+        $('#product_id').val('');
+        $('#form-title').text('Add product');
+        $('#product-submit').text('Add');
+        $('#product-cancel').hide();
+        loadAll();
+        return;
+      }
+
+      // Upload image in a second request
+      const up = new FormData();
+      up.append('product_id', productId);
+      up.append('image', file);
+
+      $.ajax({
+        url:'../Actions/upload_product_image_action.php',
+        type:'POST',
+        data: up,
+        processData:false,
+        contentType:false,
+        dataType:'json'
+      }).done(u=>{
+        if (u.status === 'success') {
+          toast('success', pid ? 'Updated' : 'Added', 'Image saved.');
         } else {
-          toast('error','Error', res.message || 'Operation failed');
+          toast('warning','Saved (no image)', u.message || 'Image upload failed.');
         }
-      },
-      error: ()=> toast('error','Error','Request failed')
-    });
+        $('#product-form')[0].reset();
+        $('#product_id').val('');
+        $('#form-title').text('Add product');
+        $('#product-submit').text('Add');
+        $('#product-cancel').hide();
+        loadAll();
+      }).fail(()=>{
+        toast('warning','Saved (no image)','Image upload failed.');
+        $('#product-form')[0].reset();
+        $('#product_id').val('');
+        $('#form-title').text('Add product');
+        $('#product-submit').text('Add');
+        $('#product-cancel').hide();
+        loadAll();
+      });
+
+    }).fail(()=> toast('error','Error','Request failed'));
   });
 
-  // Cancel edit
+  // ---------- Cancel edit ----------
   $('#product-cancel').on('click', function(){
     $('#product-form')[0].reset();
     $('#product_id').val('');
@@ -104,7 +151,7 @@ $(function () {
     $(this).hide();
   });
 
-  // Edit
+  // ---------- Edit (unchanged behavior) ----------
   $rows.on('click','.edit-btn', function(){
     const id = $(this).closest('tr').data('id');
     $.getJSON('../Actions/get_product_action.php',{ product_id:id }, (res)=>{
@@ -118,6 +165,7 @@ $(function () {
       $('#product_desc').val(p.product_desc);
       $('#product_cat').val(p.product_cat);
       $('#product_brand').val(p.product_brand);
+
       $('#form-title').text('Edit product');
       $('#product-submit').text('Save changes');
       $('#product-cancel').show();
@@ -125,12 +173,13 @@ $(function () {
     }).fail(()=>toast('error','Error','Request failed'));
   });
 
-  // Bulk ZIP
+  // ---------- Bulk ZIP (kept as-is) ----------
   $('#bulk-form').on('submit', function(e){
     e.preventDefault();
     const fd = new FormData(this);
     $.ajax({
-      url:'../Actions/bulk_product_zip_action.php', type:'POST', data:fd, processData:false, contentType:false, dataType:'json',
+      url:'../Actions/bulk_product_zip_action.php',
+      type:'POST', data:fd, processData:false, contentType:false, dataType:'json',
       success:res=>{
         if (res.status==='success') { toast('success','Bulk upload',res.message||'Done'); loadAll(); this.reset(); }
         else toast('error','Error',res.message||'Bulk failed');
@@ -139,6 +188,7 @@ $(function () {
     });
   });
 
+  // Init
   loadCatsAndBrands();
   loadAll();
 });

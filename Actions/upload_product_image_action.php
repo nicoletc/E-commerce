@@ -1,39 +1,96 @@
 <?php
+// Actions/upload_product_image_action.php
+declare(strict_types=1);
+
+ini_set('display_errors','1');
+error_reporting(E_ALL);
+
 require_once __DIR__ . '/../settings/core.php';
-require_once __DIR__ . '/../Controllers/product_controller.php';
+require_once __DIR__ . '/../settings/db_class.php';
 
-if (!is_logged_in() || !is_admin()) json_response(['status'=>'error','message'=>'Not authorized'], 401);
+header('Content-Type: application/json; charset=utf-8');
 
-$id     = (int)($_POST['product_id'] ?? 0);
-$cat    = (int)($_POST['product_cat'] ?? 0);
-$brand  = (int)($_POST['product_brand'] ?? 0);
-$title  = trim($_POST['product_title'] ?? '');
-$price  = trim($_POST['product_price'] ?? '');
-$desc   = trim($_POST['product_desc'] ?? '');
-$kw     = trim($_POST['product_keywords'] ?? '');
-
-if ($id<=0 || $cat<=0 || $brand<=0 || $title==='' || $price==='') {
-  json_response(['status'=>'error','message'=>'Missing or invalid fields'], 422);
+// Must be logged in
+if (!is_logged_in()) {
+  http_response_code(401);
+  echo json_encode(['status'=>'error','message'=>'You must be logged in to upload.']);
+  exit;
 }
 
-$imgPath = null;
-if (!empty($_FILES['product_image']['name'])) {
-  require_once __DIR__ . '/upload_helpers.php';
-  $save = save_uploaded_image_strict('product_image', (int)$_SESSION[SESS_USER_ID], $id);
-  if (!$save['ok']) json_response(['status'=>'error','message'=>'Image upload failed: '.$save['error']], 400);
-  $imgPath = $save['relative'];
+$userId    = (int)($_SESSION['customer_id'] ?? 0);
+$productId = (int)($_POST['product_id'] ?? 0);
+
+if ($userId <= 0 || $productId <= 0) {
+  http_response_code(400);
+  echo json_encode(['status'=>'error','message'=>'Invalid user or product id.']);
+  exit;
 }
 
-$ok = update_product_ctr([
-  'product_id' => $id,
-  'product_cat' => $cat,
-  'product_brand' => $brand,
-  'product_title' => $title,
-  'product_price' => $price,
-  'product_desc' => $desc,
-  'product_keywords' => $kw,
-  'product_image' => $imgPath
-]);
+if (!isset($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+  http_response_code(400);
+  echo json_encode(['status'=>'error','message'=>'No image uploaded.']);
+  exit;
+}
 
-if (!$ok) json_response(['status'=>'error','message'=>'Update failed'], 500);
-json_response(['status'=>'success','message'=>'Product updated','product_id'=>$id,'image'=>$imgPath]);
+// ---- Paths & security: only inside /uploads ----
+$uploadsRoot = realpath(__DIR__ . '/../uploads');   // folder already exists (per assignment)
+if ($uploadsRoot === false) {
+  http_response_code(500);
+  echo json_encode(['status'=>'error','message'=>'Uploads folder missing.']);
+  exit;
+}
+
+$ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
+$ok  = ['jpg','jpeg','png','gif','webp'];
+if (!in_array($ext, $ok, true)) {
+  http_response_code(400);
+  echo json_encode(['status'=>'error','message'=>'Unsupported file type.']);
+  exit;
+}
+
+// Create user/product folders
+$uDirAbs = $uploadsRoot . "/u{$userId}";
+$pDirAbs = $uDirAbs    . "/p{$productId}";
+if (!is_dir($uDirAbs) && !mkdir($uDirAbs, 0777)) {
+  http_response_code(500);
+  echo json_encode(['status'=>'error','message'=>'Failed to create user folder.']);
+  exit;
+}
+if (!is_dir($pDirAbs) && !mkdir($pDirAbs, 0777)) {
+  http_response_code(500);
+  echo json_encode(['status'=>'error','message'=>'Failed to create product folder.']);
+  exit;
+}
+
+// Next index (image_1, image_2…)
+$files = glob($pDirAbs.'/image_*.{jpg,jpeg,png,gif,webp}', GLOB_BRACE) ?: [];
+$next  = count($files) + 1;
+
+$destAbs = $pDirAbs . "/image_{$next}.{$ext}";
+
+// Final guard: ensure destination stays inside /uploads
+$realDest = realpath(dirname($destAbs));
+if ($realDest === false || strpos($realDest, $uploadsRoot) !== 0) {
+  http_response_code(400);
+  echo json_encode(['status'=>'error','message'=>'Invalid destination path.']);
+  exit;
+}
+
+if (!move_uploaded_file($_FILES['image']['tmp_name'], $destAbs)) {
+  http_response_code(500);
+  echo json_encode(['status'=>'error','message'=>'Could not store file.']);
+  exit;
+}
+
+// Store RELATIVE path in DB
+$relative = "uploads/u{$userId}/p{$productId}/image_{$next}.{$ext}";
+
+try {
+  $pdo = (new Db())->pdo();
+  $st  = $pdo->prepare("UPDATE products SET product_image = :img WHERE product_id = :id");
+  $st->execute([':img' => $relative, ':id' => $productId]);
+  echo json_encode(['status'=>'success','path'=>$relative,'product_id'=>$productId]);
+} catch (Throwable $e) {
+  http_response_code(500);
+  echo json_encode(['status'=>'error','message'=>'DB update failed.']);
+}

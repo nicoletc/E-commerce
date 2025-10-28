@@ -29,7 +29,7 @@ $first    = htmlspecialchars(explode(' ', trim($customer))[0] ?: 'Admin');
     <aside class="dash-side">
       <div class="brand">
         <div class="brand-logo">🛍️</div>
-        <div class="brand-name">E-Shop Admin</div>
+        <div class="brand-name">Re.vert Admin</div>
       </div>
 
       <nav class="side-nav">
@@ -53,6 +53,10 @@ $first    = htmlspecialchars(explode(' ', trim($customer))[0] ?: 'Admin');
         <div class="hello">
           <h1>Hello, <?= $first ?>! <span class="whatsup">What’s up?</span> 👋</h1>
           <p>Manage your products below.</p>
+        </div>
+
+        <div class="header-action">
+          <a href="../view/products.php" class="btn-storefront" target="_blank" rel="noopener">View Storefront</a>
         </div>
       </header>
 

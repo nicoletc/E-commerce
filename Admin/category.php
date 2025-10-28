@@ -33,7 +33,7 @@ $first    = htmlspecialchars(explode(' ', trim($customer))[0] ?: 'Admin');
     <aside class="dash-side">
       <div class="brand">
         <div class="brand-logo">🛍️</div>
-        <div class="brand-name">E-Shop Admin</div>
+        <div class="brand-name">Re.vert Admin</div>
       </div>
 
       <nav class="side-nav">

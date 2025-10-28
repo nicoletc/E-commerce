@@ -148,6 +148,66 @@ tbody tr{ animation: listIn .35s ease both; }
 .b5{ bottom:-60px; right:-40px; width:280px; height:280px; animation-duration:20s; }
 .b6{ bottom:25%; right:18%; width:140px; height:140px; animation-duration:17s; }
 
+/* Top-right header button */
+/* Make header a flex row so the CTA can sit at the far right */
+.dash-main .dash-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* Glassy gradient pill */
+.btn-storefront {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #fff;
+  text-decoration: none;
+  background: linear-gradient(135deg, #e472ee 0%, #d46bff 100%);
+  box-shadow: 0 6px 18px rgba(236, 114, 234, 0.3);
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.btn-storefront:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(231, 148, 225, 0.4);
+}
+
+.btn-storefront:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(215, 116, 232, 0.25);
+}
+
+.btn-storefront::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255,255,255,.2), rgba(255,255,255,0));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.btn-storefront:hover::after {
+  opacity: 1;
+}
+
+/* Keep it tidy on small screens */
+@media (max-width: 720px){
+  .dash-main .dash-header{
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .btn-storefront{ padding: 9px 16px; font-weight: 600; }
+}
+
+
 
 @keyframes sideIn{
   from{ opacity:0; transform: translateX(-14px); }

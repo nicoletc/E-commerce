@@ -11,7 +11,7 @@ $first    = $customer ? explode(' ', trim($customer))[0] : null;
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>E-Shop · Home</title>
+  <title>Re.vert · Home</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="Css/index.css">
 </head>
@@ -26,12 +26,12 @@ $first    = $customer ? explode(' ', trim($customer))[0] : null;
 
   <header class="nav">
     <a class="brand" href="index.php">
-      <span class="logo">🛍️</span><span class="name">E-Shop</span>
+      <span class="logo">🛍️</span><span class="name">Re.vert</span>
     </a>
 
     <nav class="links">
-      <a href="#">Home</a>
-      <a href="#features">Marketplace</a>
+      <a href="index.php">Home</a>
+      <a href="view/products.php">Shop Now</a>
       <a href="#testimonials">Stories</a>
       <a href="#faq">Help</a>
     </nav>
@@ -61,6 +61,7 @@ $first    = $customer ? explode(' ', trim($customer))[0] : null;
       <div class="cta reveal" data-reveal="up">
         <a class="btn" href="view/register.php">Get Started</a>
         <a class="btn ghost" href="#features">Explore Features</a>
+        <a class="btn" href="view/products.php">Shop Now</a>
       </div>
   </section>
 
@@ -162,7 +163,7 @@ $first    = $customer ? explode(' ', trim($customer))[0] : null;
   </section>
 
   <footer class="footer container">
-    <p>© <?= date('Y') ?> E-Shop. All rights reserved.</p>
+    <p>© <?= date('Y') ?> Re.vert. All rights reserved.</p>
   </footer>
 
   <script src="js/land_animate.js"></script>
