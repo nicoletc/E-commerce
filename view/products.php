@@ -72,8 +72,10 @@ foreach ($products as $p) {
         <article class="product-card" id="product-<?= htmlspecialchars($p['product_id']) ?>">
           <div class="img-wrap">
             <?php if (!empty($p['product_image'])): ?>
-              <img src="<?= htmlspecialchars($p['product_image']) ?>" alt="<?= htmlspecialchars($p['product_title']) ?>">
-            <?php else: ?>
+                <img
+                  src="<?= htmlspecialchars('../' . ltrim($p['product_image'], '/')) ?>"
+                  alt="<?= htmlspecialchars($p['product_title']) ?>"
+                >            <?php else: ?>
               <div class="placeholder">No Image</div>
             <?php endif; ?>
           </div>
