@@ -31,7 +31,7 @@ $first    = $customer ? explode(' ', trim($customer))[0] : null;
 
     <nav class="links">
       <a href="index.php">Home</a>
-      <a href="view/products.php">Shop Now</a>
+      <a href="view/all_product.php">Shop Now</a>
       <a href="#testimonials">Stories</a>
       <a href="#faq">Help</a>
     </nav>

@@ -56,7 +56,7 @@ $first    = htmlspecialchars(explode(' ', trim($customer))[0] ?: 'Admin');
         </div>
 
         <div class="header-action">
-          <a href="../view/products.php" class="btn-storefront" target="_blank" rel="noopener">View Storefront</a>
+          <a href="../view/all_product.php" class="btn-storefront" target="_blank" rel="noopener">View Storefront</a>
         </div>
       </header>
 

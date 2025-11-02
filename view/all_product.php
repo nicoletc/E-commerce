@@ -1,4 +1,9 @@
 <?php
+
+ini_set('display_errors','1');
+ini_set('display_startup_errors','1');
+error_reporting(E_ALL);
+
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 require_once __DIR__ . '/../Controllers/product_controller.php';
@@ -9,17 +14,37 @@ $customer = $_SESSION['customer_name'] ?? null;
 $isAdmin  = isset($_SESSION['user_role']) && (int)$_SESSION['user_role'] === 1;
 
 $first = $customer ? explode(' ', trim($customer))[0] : null;
-$products = get_products_ctr();
+// $products = get_products_ctr();
+// $cats     = get_categories_ctr();   // <-- add this
+// $brands   = get_brands_ctr();       // <-- add this
+
+$cats     = get_categories_ctr();
+$brands   = get_brands_ctr();
+
+// collect filters from query string and call controller to get filtered/paginated results
+$opts = [
+  'q'         => trim((string)($_GET['q'] ?? '')),
+  'cat'       => $_GET['cat'] ?? '',
+  'brand'     => $_GET['brand'] ?? '',
+  'min_price' => $_GET['min_price'] ?? '',
+  'max_price' => $_GET['max_price'] ?? '',
+  'page'      => max(1, (int)($_GET['page'] ?? 1)),
+  'limit'     => 24,
+];
+
+$view = view_all_products_ctr($opts);
+$products = $view['items'] ?? [];
+$total    = $view['total'] ?? 0;
+$pages    = $view['pages'] ?? 1;
+
 $grouped = [];
-foreach ($products as $p) {
-  $grouped[$p['cat_name']][] = $p;
-}
+foreach ($products as $p) { $grouped[$p['cat_name']][] = $p; }
 ?>
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Re.vert · Products</title>
+  <title>Re.vert · All Products</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="../Css/products.css">
 </head>
@@ -41,6 +66,7 @@ foreach ($products as $p) {
     <a href="../index.php#testimonials">Stories</a>
     <a href="../index.php#faq">Help</a>
   </nav>
+
   <div class="actions">
     <?php if (!$loggedIn): ?>
       <a class="btn ghost" href="login.php">Log in</a>
@@ -62,6 +88,43 @@ foreach ($products as $p) {
     <a class="btn glass reveal" data-reveal="up" href="#shop-grid">Shop Now</a>
   </div>
 </section>
+
+<!-- Filters form moved here: right before the products list -->
+<div class="container">
+  <div class="filters-card reveal" data-reveal="up" role="region" aria-labelledby="filters-title">
+    <h3 id="filters-title" class="filters-title">Search Filters</h3>
+    <!-- use GET so filters appear in URL and form can be bookmarked -->
+    <form id="search-form" class="filters-form" method="get" action="all_product.php" aria-label="Product filters">
+      <div class="filters-row">
+        <input id="q" name="q" type="search" placeholder="Search by title or keyword…" autocomplete="off"
+               value="<?= htmlspecialchars($opts['q']) ?>">
+        <select id="cat" name="cat" aria-label="Category">
+          <option value="" <?= $opts['cat'] === '' ? 'selected' : '' ?>>All categories</option>
+          <?php foreach ($cats as $c): ?>
+            <option value="<?= (int)$c['cat_id'] ?>" <?= ((string)$c['cat_id'] === (string)$opts['cat']) ? 'selected' : '' ?>>
+              <?= htmlspecialchars($c['cat_name']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+        <select id="brand" name="brand" aria-label="Brand">
+          <option value="" <?= $opts['brand'] === '' ? 'selected' : '' ?>>All brands</option>
+          <?php foreach ($brands as $b): ?>
+            <option value="<?= (int)$b['brand_id'] ?>" <?= ((string)$b['brand_id'] === (string)$opts['brand']) ? 'selected' : '' ?>>
+              <?= htmlspecialchars($b['brand_name']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="filters-row">
+        <input id="min_price" name="min_price" type="number" step="0.01" min="0" placeholder="Min price"
+               value="<?= htmlspecialchars($opts['min_price']) ?>">
+        <input id="max_price" name="max_price" type="number" step="0.01" min="0" placeholder="Max price"
+               value="<?= htmlspecialchars($opts['max_price']) ?>">
+        <button class="btn primary" type="submit">Search</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <!-- Products -->
 <section id="shop-grid" class="products-section container reveal" data-reveal="up">
@@ -85,7 +148,7 @@ foreach ($products as $p) {
             <span class="price">₵<?= htmlspecialchars($p['product_price']) ?></span>
           </div>
           <div class="actions">
-            <a class="btn small glass" href="product_detail.php?id=<?= htmlspecialchars($p['product_id']) ?>">View</a>
+            <a class="btn small glass" href="single_product.php?id=<?= htmlspecialchars($p['product_id']) ?>">View</a>
             <?php if ($loggedIn): ?>
               <a class="btn small ghost" href="#">Add to Cart</a>
             <?php else: ?>
@@ -103,6 +166,8 @@ foreach ($products as $p) {
 </footer>
 
 <script src="../js/land_animate.js"></script>
+<script src="../js/products.js"></script>
+
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const els = document.querySelectorAll('.reveal');
