@@ -168,6 +168,48 @@ foreach ($products as $p) { $grouped[$p['cat_name']][] = $p; }
 <script src="../js/land_animate.js"></script>
 <script src="../js/products.js"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+  // exported from PHP so JS knows auth state
+  const isLoggedIn = <?= $loggedIn ? 'true' : 'false' ?>;
+
+  // intercept clicks on product view links when not logged in
+  document.addEventListener('click', function (e) {
+    const a = e.target.closest('a[href*="single_product.php"]');
+    if (!a) return;
+    if (isLoggedIn) return; // allow navigation for logged-in users
+
+    e.preventDefault();
+
+    // get product id from link
+    const href = a.getAttribute('href');
+    let id = '';
+    try {
+      const url = new URL(href, window.location.origin + '<?= dirname($_SERVER['REQUEST_URI']) ?>/');
+      id = url.searchParams.get('id') || '';
+    } catch (err) {
+      // fallback parse
+      const m = href.match(/[?&]id=(\d+)/);
+      if (m) id = m[1];
+    }
+
+    Swal.fire({
+      title: 'Please log in',
+      text: 'You must be logged in to view product details.',
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonText: 'Login',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // redirect to login with next param so user returns to product after logging in
+        const next = encodeURIComponent('single_product.php' + (id ? ('?id=' + id) : ''));
+        window.location.href = 'login.php?next=' + next;
+      }
+    });
+  }, false);
+</script>
+
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const els = document.querySelectorAll('.reveal');

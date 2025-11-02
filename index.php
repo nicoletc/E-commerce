@@ -61,7 +61,7 @@ $first    = $customer ? explode(' ', trim($customer))[0] : null;
       <div class="cta reveal" data-reveal="up">
         <a class="btn" href="view/register.php">Get Started</a>
         <a class="btn ghost" href="#features">Explore Features</a>
-        <a class="btn" href="view/products.php">Shop Now</a>
+        <a class="btn" href="view/all_product.php">Shop Now</a>
       </div>
   </section>
 
