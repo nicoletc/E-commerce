@@ -61,16 +61,41 @@ if ($za->open($zipTmp) !== true) jfail('Could not open ZIP archive.');
 if (!$za->extractTo($workDir)) { $za->close(); jfail('Failed to extract ZIP.'); }
 $za->close();
 
-// --- find CSV (first *.csv in root preferred) ---
+// --- find CSV (first *.csv in root preferred).
+// Many ZIPs contain a single top-level folder; look there too.
 $csvPath = null;
+$extractBase = $workDir;
 $rootList = scandir($workDir) ?: [];
+
+// 1) check CSV files at the extraction root
 foreach ($rootList as $f) {
   if ($f === '.' || $f === '..') continue;
   $p = $workDir . '/' . $f;
   if (is_file($p) && preg_match('/\.csv$/i', $f)) { $csvPath = $p; break; }
 }
+
+// 2) if not found, check each first-level directory for a CSV (common when folder is zipped)
 if (!$csvPath) {
-  jfail('No CSV file found in the ZIP root. Put the CSV alongside the images.');
+  foreach ($rootList as $f) {
+    if ($f === '.' || $f === '..') continue;
+    $p = $workDir . '/' . $f;
+    if (is_dir($p)) {
+      $sub = scandir($p) ?: [];
+      foreach ($sub as $sf) {
+        if ($sf === '.' || $sf === '..') continue;
+        $sp = $p . '/' . $sf;
+        if (is_file($sp) && preg_match('/\.csv$/i', $sf)) {
+          $csvPath = $sp;
+          $extractBase = $p; // use this folder as the base for images
+          break 2;
+        }
+      }
+    }
+  }
+}
+
+if (!$csvPath) {
+  jfail('No CSV file found in the ZIP. Put the CSV in the root of the archive or inside the top-level folder.');
 }
 
 // --- open CSV ---
@@ -134,25 +159,26 @@ while (($row = fgetcsv($fh)) !== false) {
       throw new RuntimeException('product_price must be numeric.');
     }
 
-    // image resolution (root of ZIP)
+    // image resolution (relative to the CSV folder / extract base)
     $imageRel = trim((string)($row[$idx['product_image']] ?? ''));
     $imageAbs = null;
     if ($imageRel !== '') {
       $fname = basename($imageRel);
-      $candidate = $workDir . '/' . $fname;
+      $candidate = $extractBase . '/' . $fname;
       if (is_file($candidate)) {
         $imageAbs = $candidate;
       } else {
-        // case-insensitive search among extracted root files
-        foreach ($rootList as $f) {
+        // case-insensitive search among extracted base files
+        $baseList = scandir($extractBase) ?: [];
+        foreach ($baseList as $f) {
           if ($f === '.' || $f === '..') continue;
-          if (strcasecmp($f, $fname) === 0 && is_file($workDir . '/' . $f)) {
-            $imageAbs = $workDir . '/' . $f;
+          if (strcasecmp($f, $fname) === 0 && is_file($extractBase . '/' . $f)) {
+            $imageAbs = $extractBase . '/' . $f;
             break;
           }
         }
         if (!$imageAbs) {
-          throw new RuntimeException("Image not found in ZIP root: {$fname}");
+          throw new RuntimeException("Image not found near CSV folder: {$fname}");
         }
       }
     }
