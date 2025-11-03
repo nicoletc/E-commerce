@@ -125,18 +125,28 @@ $first    = htmlspecialchars(explode(' ', trim($customer))[0] ?: 'Admin');
         </div>
       </article>
 
-      <!-- OPTIONAL: bulk zip upload (extra credit UI) -->
       <article class="card reveal">
         <div class="card-head">
-          <h3>Bulk upload (ZIP) — optional</h3>
+          <h3>Bulk upload (ZIP)</h3>
         </div>
-        <form id="bulk-form" class="row" enctype="multipart/form-data">
-          <input class="input" type="file" id="bulk_zip" name="bulk_zip" accept=".zip">
+        <form id="bulk-form" action="../Actions/bulk_product_zip_action.php" method="post" enctype="multipart/form-data">
+          <input type="file" name="zip_file" accept=".zip" required>
           <button class="btn" type="submit">Upload ZIP</button>
-          <p class="muted">Include a <code>manifest.csv</code> inside the ZIP with columns:
-            <em>product_title,product_price,product_desc,product_keywords,product_cat,product_brand,image</em></p>
         </form>
       </article>
+
+
+      <script>
+        document.getElementById('bulk-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const fd = new FormData(e.target);
+          const res = await fetch(e.target.action, { method: 'POST', body: fd });
+          const json = await res.json();
+          alert(JSON.stringify(json, null, 2)); // replace with your sweetalert/toast
+          // optionally refresh the products table
+        });
+        </script>
+
 
     </main>
   </div>

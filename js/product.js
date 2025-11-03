@@ -6,7 +6,6 @@ $(function () {
   const esc   = s => String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[m]));
   const money = v => (Number(v)||0).toFixed(2);
 
-  // ---------- Dropdowns ----------
   function loadCatsAndBrands() {
     $.getJSON('../Actions/fetch_category_action.php', (res) => {
       const $sel = $('#product_cat').empty();
@@ -29,7 +28,6 @@ $(function () {
     });
   }
 
-  // ---------- Table render ----------
   function renderRows(items) {
     if (!items || !items.length) {
       $rows.html('<tr><td colspan="5">No products yet — add one above.</td></tr>');
@@ -69,7 +67,6 @@ $(function () {
     }).fail(()=>toast('error','Error','Request failed'));
   }
 
-  // ---------- Add / Update (keeps your original endpoints) ----------
   $('#product-form').on('submit', function (e) {
     e.preventDefault();
 
@@ -89,11 +86,9 @@ $(function () {
         return toast('error','Error', res.message || 'Operation failed');
       }
 
-      // Figure out the product id to use for image upload
       const productId = pid ? parseInt(pid,10) : parseInt(res.product_id,10);
       const file = ($('#product_image')[0] && $('#product_image')[0].files) ? $('#product_image')[0].files[0] : null;
 
-      // If no file chosen, we're done
       if (!file || !productId) {
         toast('success', pid ? 'Updated' : 'Added', res.message || '');
         this.reset();
@@ -105,7 +100,6 @@ $(function () {
         return;
       }
 
-      // Upload image in a second request
       const up = new FormData();
       up.append('product_id', productId);
       up.append('image', file);
@@ -142,7 +136,7 @@ $(function () {
     }).fail(()=> toast('error','Error','Request failed'));
   });
 
-  // ---------- Cancel edit ----------
+
   $('#product-cancel').on('click', function(){
     $('#product-form')[0].reset();
     $('#product_id').val('');
@@ -151,7 +145,7 @@ $(function () {
     $(this).hide();
   });
 
-  // ---------- Edit (unchanged behavior) ----------
+
   $rows.on('click','.edit-btn', function(){
     const id = $(this).closest('tr').data('id');
     $.getJSON('../Actions/get_product_action.php',{ product_id:id }, (res)=>{
@@ -173,20 +167,32 @@ $(function () {
     }).fail(()=>toast('error','Error','Request failed'));
   });
 
-  // ---------- Bulk ZIP (kept as-is) ----------
+  $(function () {
   $('#bulk-form').on('submit', function(e){
     e.preventDefault();
     const fd = new FormData(this);
     $.ajax({
-      url:'../Actions/bulk_product_zip_action.php',
-      type:'POST', data:fd, processData:false, contentType:false, dataType:'json',
-      success:res=>{
-        if (res.status==='success') { toast('success','Bulk upload',res.message||'Done'); loadAll(); this.reset(); }
-        else toast('error','Error',res.message||'Bulk failed');
+      url: '../Actions/bulk_product_zip_action.php',
+      type: 'POST',
+      data: fd,
+      processData: false,
+      contentType: false,
+      dataType: 'json',
+      success: (res)=>{
+        if (res.status === 'success') {
+          const lines = (res.rows || []).map(r => `${r.row}: ${r.status.toUpperCase()} — ${r.message}`).join('\n');
+          Swal.fire({icon:'success', title:'Bulk upload', html:`<pre style="text-align:left;white-space:pre-wrap">${lines}</pre>`, width:700});
+          if (typeof loadAll === 'function') loadAll();
+          this.reset();
+        } else {
+          Swal.fire({icon:'error', title:'Bulk upload failed', text: res.message || 'Unknown error'});
+        }
       },
-      error:()=> toast('error','Error','Request failed')
+      error: (xhr)=> Swal.fire({icon:'error', title:'Request failed', text: xhr.responseText || 'Network error'})
     });
   });
+});
+
 
   // Init
   loadCatsAndBrands();
