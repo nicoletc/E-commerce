@@ -36,14 +36,33 @@ $zipName = (string)$_FILES['zip_file']['name'];
 if (!is_uploaded_file($zipTmp)) jfail('Upload failed or file not found.');
 
 // --- working directory (unique) ---
-$workBase = __DIR__ . '/../tmp';
-if (!is_dir($workBase) && !mkdir($workBase, 0755, true)) {
-  jfail('Could not prepare tmp directory.');
+// --- working directory (pick a writable base automatically) ---
+$baseCandidates = [
+  __DIR__ . '/../tmp',       // project tmp
+  __DIR__ . '/../uploads',   // fall back to uploads
+  sys_get_temp_dir(),        // OS temp
+];
+
+$workBase = null;
+foreach ($baseCandidates as $base) {
+  error_log("bulk import: checking base candidate: {$base}");
+  if (@is_dir($base) && @is_writable($base)) { $workBase = $base; break; }
 }
-$workDir = $workBase . '/bulkupload_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4));
-if (!mkdir($workDir, 0755, true)) {
+error_log("bulk import: selected workBase: " . var_export($workBase, true));
+if (!$workBase) {
+  foreach ($baseCandidates as $base) {
+    if (@mkdir($base, 0775, true)) { $workBase = $base; break; }
+  }
+}
+if (!$workBase) {
+  jfail('No writable directory available for temp extraction.');
+}
+
+$workDir = rtrim($workBase, '/').'/bulkupload_'.date('Ymd_His').'_' . bin2hex(random_bytes(4));
+if (!@mkdir($workDir, 0775, true)) {
   jfail('Could not create working directory.');
 }
+
 
 // --- extract ZIP ---
 $za = new ZipArchive();
@@ -100,8 +119,9 @@ $created = 0; $skipped = 0; $rows = 0; $errors = [];
 while (($row = fgetcsv($fh)) !== false) {
   $rows++;
 
-  // tolerate short rows
-  $row += array_fill(0, max($idx), '');
+  // ensure $row has at least up to the highest indexed header
+  $maxIndex = max($idx);
+  $row = array_pad($row, $maxIndex + 1, '');
 
   try {
     $payload = [
@@ -111,7 +131,7 @@ while (($row = fgetcsv($fh)) !== false) {
       'product_price'    => trim((string)($row[$idx['product_price']] ?? '')),
       'product_desc'     => trim((string)($row[$idx['product_desc']] ?? '')),
       'product_keywords' => trim((string)($row[$idx['product_keywords']] ?? '')),
-      'product_image'    => null, // set after file copy
+      'product_image'    => null,
     ];
 
     // basic validation
@@ -122,22 +142,22 @@ while (($row = fgetcsv($fh)) !== false) {
       throw new RuntimeException('product_price must be numeric.');
     }
 
-    // --- resolve image FROM ZIP ROOT (no subfolder) ---
+    // image resolution (root of ZIP)
     $imageRel = trim((string)($row[$idx['product_image']] ?? ''));
     $imageAbs = null;
     if ($imageRel !== '') {
-      // normalize to filename only (so "images/pic.png" also works)
       $fname = basename($imageRel);
-
       $candidate = $workDir . '/' . $fname;
       if (is_file($candidate)) {
         $imageAbs = $candidate;
       } else {
-        // final attempt: case-insensitive match among files in root
+        // case-insensitive search among extracted root files
         foreach ($rootList as $f) {
           if ($f === '.' || $f === '..') continue;
-          $p = $workDir . '/' . $f;
-          if (is_file($p) && strcasecmp($f, $fname) === 0) { $imageAbs = $p; break; }
+          if (strcasecmp($f, $fname) === 0 && is_file($workDir . '/' . $f)) {
+            $imageAbs = $workDir . '/' . $f;
+            break;
+          }
         }
         if (!$imageAbs) {
           throw new RuntimeException("Image not found in ZIP root: {$fname}");
@@ -147,7 +167,9 @@ while (($row = fgetcsv($fh)) !== false) {
 
     // --- create DB product (without image first) ---
     $newId = add_product_ctr($payload);
-    if (!$newId) throw new RuntimeException('DB insert failed.');
+    if (!is_int($newId) || $newId <= 0) {
+      throw new RuntimeException('DB insert failed or did not return new product id.');
+    }
 
     // --- place image under uploads/products/{id}/ ---
     if ($imageAbs) {
@@ -163,9 +185,8 @@ while (($row = fgetcsv($fh)) !== false) {
         throw new RuntimeException('Failed to copy image to uploads.');
       }
 
-      // store relative path for frontend: "uploads/products/{id}/main.png"
       $rel = 'uploads/products/' . (int)$newId . '/' . $safe;
-      update_product_ctr([
+      $ok = update_product_ctr([
         'product_id'       => (int)$newId,
         'product_cat'      => $payload['product_cat'],
         'product_brand'    => $payload['product_brand'],
@@ -175,6 +196,9 @@ while (($row = fgetcsv($fh)) !== false) {
         'product_keywords' => $payload['product_keywords'],
         'product_image'    => $rel,
       ]);
+      if (!$ok) {
+        throw new RuntimeException('Failed to update product with image path.');
+      }
     }
 
     $created++;

@@ -46,13 +46,14 @@ $(document).ready(function () {
       url: '../Actions/register_customer_action.php',
       type: 'POST',
       dataType: 'json',
-      contentType: 'application/json',
+      contentType: 'application/json; charset=utf-8',
       data: JSON.stringify({
         name,
         email,
         password: pass,
-        country,                
-        phone_number: phone      
+        country,
+        city,
+        phone_number: phone
       }),
       success: function (res) {
         if (res.status === 'success' || res.ok === true) {
