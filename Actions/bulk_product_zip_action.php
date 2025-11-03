@@ -141,6 +141,14 @@ while (($row = fgetcsv($fh)) !== false) {
   $row = array_pad($row, $maxIndex + 1, '');
 
   try {
+    // skip totally empty rows
+    $titleCheck = trim((string)($row[$idx['product_title']] ?? ''));
+    $catCheck   = (int)trim((string)($row[$idx['product_cat']] ?? '0'));
+    // if both title empty and cat is zero, this is likely an empty row or trailing mapping section -> skip
+    if ($titleCheck === '' && $catCheck === 0) {
+      continue;
+    }
+
     $payload = [
       'product_cat'      => (int)trim((string)($row[$idx['product_cat']] ?? '0')),
       'product_brand'    => (int)trim((string)($row[$idx['product_brand']] ?? '0')),
@@ -164,22 +172,31 @@ while (($row = fgetcsv($fh)) !== false) {
     $imageAbs = null;
     if ($imageRel !== '') {
       $fname = basename($imageRel);
+      // direct candidate
       $candidate = $extractBase . '/' . $fname;
       if (is_file($candidate)) {
         $imageAbs = $candidate;
       } else {
-        // case-insensitive search among extracted base files
-        $baseList = scandir($extractBase) ?: [];
-        foreach ($baseList as $f) {
-          if ($f === '.' || $f === '..') continue;
-          if (strcasecmp($f, $fname) === 0 && is_file($extractBase . '/' . $f)) {
-            $imageAbs = $extractBase . '/' . $f;
+        // try relative path if CSV contained a path (e.g., images/tee1.jpg)
+        $relPathCandidate = $extractBase . '/' . ltrim($imageRel, "\/");
+        if (is_file($relPathCandidate)) {
+          $imageAbs = $relPathCandidate;
+        }
+      }
+
+      // final fallback: recursive case-insensitive search under extractBase
+      if (!$imageAbs) {
+        $rit = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($extractBase, FilesystemIterator::SKIP_DOTS));
+        foreach ($rit as $file) {
+          if ($file->isFile() && strcasecmp($file->getFilename(), $fname) === 0) {
+            $imageAbs = $file->getRealPath();
             break;
           }
         }
-        if (!$imageAbs) {
-          throw new RuntimeException("Image not found near CSV folder: {$fname}");
-        }
+      }
+
+      if (!$imageAbs) {
+        throw new RuntimeException("Image not found near CSV folder: {$fname}");
       }
     }
 

@@ -1,0 +1,20 @@
+﻿product_id,product_cat,product_brand,product_title,product_price,product_desc,product_image,product_keywords,,,
+7,5,1,Nike Sportswear Swoosh Series,100,"Bundle up in this versatile gilet. Engineered with maximum down insulation and water-repellent fabric, it's our warmest option in the Swoosh Series Collection. The oversized fit and elongated collar round off your look while keeping you comfortable.",swoosh.png,"jacket, pink, water-repellent",,,
+8,5,1,Nike Sportswear Phoenix Fleece,200,"Made from heavyweight jacquard, this gilet has a cosy and quilted feel. The oversized fit is easy to throw on for elevated dimension.",fleece.png,"Cave, Purple, Jacquard Gilet",,,
+9,4,2,Galaxy 7 Running Shoes,250,Every run is a journey of discovery. Lace up in these adidas running shoes and explore your potential. The Cloudfoam midsole cushions your stride to keep you comfortable as you build endurance. A durable textile upper offers a supportive feel from your first laps to your first 5K.,galaxy7.png,"Cloudfoam midsole, lace, closure",,,
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,Category ID Map,
+,,,,,,,,,cat_id,cat_name
+,,,,,,,,,1,Foods
+,,,,,,,,,2,Shirts
+,,,,,,,,,3,Cloths
+,,,,,,,,,4,Shoes
+,,,,,,,,,5,Jackets
+,,,,,,,,,,
+,,,,,,,,,Brand ID Map,
+,,,,,,,,,brand_id,brand_name
+,,,,,,,,,1,Nike
+,,,,,,,,,2,Adidas
