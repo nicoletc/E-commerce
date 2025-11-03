@@ -22,12 +22,10 @@ function jsuccess(array $payload) {
   exit;
 }
 
-// --- auth guard (admin only) ---
 if (!function_exists('is_logged_in') || !function_exists('is_admin') || !is_logged_in() || !is_admin()) {
   jfail('Unauthorized. Please log in as admin.', 401);
 }
 
-// --- upload check ---
 if (!isset($_FILES['zip_file']) || ($_FILES['zip_file']['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
   jfail('No ZIP file received (field name must be "zip_file").');
 }
@@ -35,27 +33,20 @@ $zipTmp  = (string)$_FILES['zip_file']['tmp_name'];
 $zipName = (string)$_FILES['zip_file']['name'];
 if (!is_uploaded_file($zipTmp)) jfail('Upload failed or file not found.');
 
-// --- working directory (unique) ---
-// --- working directory (pick a writable base automatically) ---
-$baseCandidates = [
-  __DIR__ . '/../tmp',       // project tmp
-  __DIR__ . '/../uploads',   // fall back to uploads
-  sys_get_temp_dir(),        // OS temp
-];
 
-$workBase = null;
-foreach ($baseCandidates as $base) {
-  error_log("bulk import: checking base candidate: {$base}");
-  if (@is_dir($base) && @is_writable($base)) { $workBase = $base; break; }
+
+$uploadsRoot = __DIR__ . '/../uploads';
+// ensure uploads root exists and is writable
+if (!is_dir($uploadsRoot) && !@mkdir($uploadsRoot, 0755, true)) {
+  jfail('Could not create uploads/ directory.');
 }
-error_log("bulk import: selected workBase: " . var_export($workBase, true));
-if (!$workBase) {
-  foreach ($baseCandidates as $base) {
-    if (@mkdir($base, 0775, true)) { $workBase = $base; break; }
-  }
+// working base is a hidden temp directory inside uploads (allowed by restricted hosts)
+$workBase = $uploadsRoot . '/.tmp';
+if (!is_dir($workBase) && !@mkdir($workBase, 0775, true)) {
+  jfail('Could not create uploads temp directory.');
 }
-if (!$workBase) {
-  jfail('No writable directory available for temp extraction.');
+if (!is_writable($workBase)) {
+  jfail('Uploads temp directory is not writable.');
 }
 
 $workDir = rtrim($workBase, '/').'/bulkupload_'.date('Ymd_His').'_' . bin2hex(random_bytes(4));
