@@ -246,8 +246,32 @@ while (($row = fgetcsv($fh)) !== false) {
       // final fallback: recursive case-insensitive search under extractBase
       if (!$imageAbs) {
         $rit = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($extractBase, FilesystemIterator::SKIP_DOTS));
+        // label derived from extract base folder name (helps when zip contained a top-level folder)
+        $extractLabel = trim((string)basename($extractBase));
+        $nameNoExt = pathinfo($fname, PATHINFO_FILENAME);
+        $candidates = [
+          $fname,
+          $extractLabel . '_' . $fname,
+          $extractLabel . '-' . $fname,
+          $extractLabel . $fname,
+          $nameNoExt . '_' . $fname,
+          $nameNoExt . '-' . $fname,
+        ];
+
         foreach ($rit as $file) {
-          if ($file->isFile() && strcasecmp($file->getFilename(), $fname) === 0) {
+          if (!$file->isFile()) continue;
+          $fn = $file->getFilename();
+          // exact case-insensitive filename match
+          if (strcasecmp($fn, $fname) === 0) {
+            $imageAbs = $file->getRealPath();
+            break;
+          }
+          // try candidate patterns
+          foreach ($candidates as $cand) {
+            if (strcasecmp($fn, $cand) === 0) { $imageAbs = $file->getRealPath(); break 2; }
+          }
+          // also accept filenames that contain the requested base name (helps when archiver prepended timestamps or IDs)
+          if (stripos($fn, $nameNoExt) !== false) {
             $imageAbs = $file->getRealPath();
             break;
           }
