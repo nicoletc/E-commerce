@@ -50,7 +50,7 @@ $(function () {
             </div>
           </td>
           <td>${esc(p.cat_name || '')} / ${esc(p.brand_name || '')}</td>
-          <td>$${money(p.product_price)}</td>
+          <td>GHS${money(p.product_price)}</td>
           <td>${esc(p.product_keywords || '')}</td>
           <td class="ta-right">
             <button class="btn ghost edit-btn">Edit</button>
