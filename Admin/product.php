@@ -129,10 +129,14 @@ $first    = htmlspecialchars(explode(' ', trim($customer))[0] ?: 'Admin');
         <div class="card-head">
           <h3>Bulk upload (ZIP)</h3>
         </div>
-        <form id="bulk-form" action="../Actions/bulk_product_zip_action.php" method="post" enctype="multipart/form-data">
-          <input type="file" name="zip_file" accept=".zip" required>
-          <button class="btn" type="submit">Upload ZIP</button>
-        </form>
+        <p class="muted">Download the CSV template (pre-filled with current Category/Brand map) and include product images inside the ZIP. You may provide category/brand IDs or names (names will be created if missing).</p>
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+          <a class="btn btn--alt" href="../Actions/download_bulk_template.php">Download template ZIP</a>
+          <form id="bulk-form" action="../Actions/bulk_product_zip_action.php" method="post" enctype="multipart/form-data" style="margin:0;">
+            <input type="file" name="zip_file" accept=".zip" required>
+            <button class="btn" type="submit">Upload ZIP</button>
+          </form>
+        </div>
       </article>
 
 

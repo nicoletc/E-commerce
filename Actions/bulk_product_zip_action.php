@@ -11,6 +11,10 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 require_once __DIR__ . '/../settings/core.php';
 require_once __DIR__ . '/../Controllers/product_controller.php';
+require_once __DIR__ . '/../Controllers/category_controller.php';
+require_once __DIR__ . '/../Controllers/brand_controller.php';
+require_once __DIR__ . '/../Classes/category_class.php';
+require_once __DIR__ . '/../Classes/brand_class.php';
 
 function jfail(string $msg, int $code = 400) {
   http_response_code($code);
@@ -107,20 +111,29 @@ $headers = fgetcsv($fh);
 if (!$headers) { fclose($fh); jfail('CSV is empty (no header row).'); }
 
 // normalize header names (lowercase, trimmed)
+// normalize header names (lowercase, trimmed)
 $norm = fn($s) => strtolower(trim((string)$s));
 $headers = array_map($norm, $headers);
 
-// expected columns
-$need = [
-  'product_cat','product_brand','product_title','product_price',
-  'product_desc','product_keywords','product_image'
+// Accept multiple aliases for cat/brand
+$aliases = [
+  'product_cat' => ['product_cat','cat','cat_id','category','product_category'],
+  'product_brand' => ['product_brand','brand','brand_id','product_brand_id'],
+  'product_title' => ['product_title','title','name'],
+  'product_price' => ['product_price','price'],
+  'product_desc' => ['product_desc','description','product_description','desc'],
+  'product_keywords' => ['product_keywords','keywords','product_keywords'],
+  'product_image' => ['product_image','image','product_image','image_file']
 ];
 
 $idx = [];
-foreach ($need as $col) {
-  $pos = array_search($col, $headers, true);
-  if ($pos === false) { fclose($fh); jfail("CSV missing required column: {$col}"); }
-  $idx[$col] = $pos;
+foreach ($aliases as $key => $alts) {
+  $found = false;
+  foreach ($alts as $a) {
+    $pos = array_search($a, $headers, true);
+    if ($pos !== false) { $idx[$key] = $pos; $found = true; break; }
+  }
+  if (!$found) { fclose($fh); jfail("CSV missing required column (one of): " . implode('|', $alts)); }
 }
 
 // --- uploads root ---
@@ -149,9 +162,12 @@ while (($row = fgetcsv($fh)) !== false) {
       continue;
     }
 
+    // Build payload (raw values). Category and brand may be IDs or names.
+    $raw_cat   = trim((string)($row[$idx['product_cat']] ?? ''));
+    $raw_brand = trim((string)($row[$idx['product_brand']] ?? ''));
     $payload = [
-      'product_cat'      => (int)trim((string)($row[$idx['product_cat']] ?? '0')),
-      'product_brand'    => (int)trim((string)($row[$idx['product_brand']] ?? '0')),
+      'product_cat'      => $raw_cat,
+      'product_brand'    => $raw_brand,
       'product_title'    => trim((string)($row[$idx['product_title']] ?? '')),
       'product_price'    => trim((string)($row[$idx['product_price']] ?? '')),
       'product_desc'     => trim((string)($row[$idx['product_desc']] ?? '')),
@@ -160,15 +176,58 @@ while (($row = fgetcsv($fh)) !== false) {
     ];
 
     // basic validation
-    if ($payload['product_cat'] <= 0) throw new RuntimeException('Invalid product_cat.');
-    if ($payload['product_brand'] <= 0) throw new RuntimeException('Invalid product_brand.');
+    // Resolve category id: numeric -> use as id; otherwise try find by name or create it
+    $catId = 0;
+    if ($payload['product_cat'] !== '') {
+      if (is_numeric($payload['product_cat']) && (int)$payload['product_cat'] > 0) {
+        $catId = (int)$payload['product_cat'];
+      } else {
+        $catName = trim((string)$payload['product_cat']);
+        $catObj = new Category();
+        // try to find by exact name
+        $list = $catObj->listAll();
+        $foundId = 0;
+        foreach ($list as $c) { if (strcasecmp($c['cat_name'], $catName) === 0) { $foundId = (int)$c['cat_id']; break; } }
+        if ($foundId > 0) {
+          $catId = $foundId;
+        } else {
+          // create new category (admin is running this)
+          $nid = $catObj->add($catName);
+          if ($nid === null) throw new RuntimeException('Failed to create new category: ' . $catName);
+          $catId = (int)$nid;
+        }
+      }
+    }
+
+    $brandId = 0;
+    if ($payload['product_brand'] !== '') {
+      if (is_numeric($payload['product_brand']) && (int)$payload['product_brand'] > 0) {
+        $brandId = (int)$payload['product_brand'];
+      } else {
+        $brandName = trim((string)$payload['product_brand']);
+        $bObj = new Brand();
+        $list = $bObj->listAll();
+        $foundId = 0;
+        foreach ($list as $b) { if (strcasecmp($b['brand_name'], $brandName) === 0) { $foundId = (int)$b['brand_id']; break; } }
+        if ($foundId > 0) {
+          $brandId = $foundId;
+        } else {
+          $nid = $bObj->add($brandName);
+          if ($nid === null) throw new RuntimeException('Failed to create new brand: ' . $brandName);
+          $brandId = (int)$nid;
+        }
+      }
+    }
+
+    if ($catId <= 0) throw new RuntimeException('Invalid product_cat.');
+    if ($brandId <= 0) throw new RuntimeException('Invalid product_brand.');
     if ($payload['product_title'] === '') throw new RuntimeException('product_title is required.');
     if ($payload['product_price'] === '' || !is_numeric($payload['product_price'])) {
       throw new RuntimeException('product_price must be numeric.');
     }
 
-    // image resolution (relative to the CSV folder / extract base)
-    $imageRel = trim((string)($row[$idx['product_image']] ?? ''));
+  // image resolution (relative to the CSV folder / extract base)
+  $imageRel = trim((string)($row[$idx['product_image']] ?? ''));
     $imageAbs = null;
     if ($imageRel !== '') {
       $fname = basename($imageRel);
@@ -200,8 +259,11 @@ while (($row = fgetcsv($fh)) !== false) {
       }
     }
 
-    // --- create DB product (without image first) ---
-    $newId = add_product_ctr($payload);
+  // --- create DB product (without image first) ---
+  $payloadToDb = $payload;
+  $payloadToDb['product_cat'] = $catId;
+  $payloadToDb['product_brand'] = $brandId;
+  $newId = add_product_ctr($payloadToDb);
     if (!is_int($newId) || $newId <= 0) {
       throw new RuntimeException('DB insert failed or did not return new product id.');
     }
