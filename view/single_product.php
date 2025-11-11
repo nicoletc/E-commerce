@@ -59,11 +59,17 @@ function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
       <div class="keywords"><strong>Keywords:</strong> <?= h($one['product_keywords']) ?></div>
     <?php endif; ?>
     <div class="actions">
-      <a class="btn glass" href="#">Add to Cart</a>
+      <a class="btn glass" href="javascript:void(0)" onclick="addToCart(<?= (int)$p['product_id'] ?>, 1)">Add to Cart</a>
+
       <a class="btn ghost" href="all_product.php#product-<?= h($one['product_id']) ?>">Back</a>
     </div>
   </div>
 </section>
+
+<script type="module">
+  import {addToCart} from '../js/cart.js';
+  window.addToCart = addToCart;
+</script>
 
 <footer class="footer container">
   <p>© <?= date('Y') ?> Re.vert. All rights reserved.</p>

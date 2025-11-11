@@ -62,7 +62,7 @@ foreach ($products as $p) { $grouped[$p['cat_name']][] = $p; }
   </a>
   <nav class="links">
     <a href="../index.php">Home</a>
-    <a href="products.php" class="active">Shop Now</a>
+    <a href="all_product.php" class="active">Shop Now</a>
     <a href="../index.php#testimonials">Stories</a>
     <a href="../index.php#faq">Help</a>
   </nav>
@@ -78,6 +78,15 @@ foreach ($products as $p) { $grouped[$p['cat_name']][] = $p; }
       <a class="btn" href="../Actions/logout.php">Logout</a>
     <?php endif; ?>
   </div>
+
+  <!-- Cart Icon Button -->
+<div class="cart-icon-wrapper">
+  <a href="cart.php" class="cart-btn" title="View Cart">
+    🛒
+    <span id="cart-count" class="cart-count-badge">0</span>
+  </a>
+</div>
+
 </header>
 
 <!-- Hero -->
@@ -150,7 +159,7 @@ foreach ($products as $p) { $grouped[$p['cat_name']][] = $p; }
           <div class="actions">
             <a class="btn small glass" href="single_product.php?id=<?= htmlspecialchars($p['product_id']) ?>">View</a>
             <?php if ($loggedIn): ?>
-              <a class="btn small ghost" href="#">Add to Cart</a>
+              <a class="btn small ghost" href="javascript:void(0)" onclick="addToCart(<?= (int)$p['product_id'] ?>, 1)">Add to Cart</a>
             <?php else: ?>
               <a class="btn small ghost disabled" href="login.php" title="Please log in to add to cart">Add to Cart</a>
             <?php endif; ?>
@@ -235,6 +244,71 @@ foreach ($products as $p) { $grouped[$p['cat_name']][] = $p; }
     }
   });
 </script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+  // Add-to-cart (global)
+  async function addToCart(productId, qty = 1) {
+    try {
+      const res = await fetch('../Actions/add_to_cart_action.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+        body: new URLSearchParams({ product_id: productId, qty })
+      });
+      const data = await res.json();
+
+      if (data.status === 'ok') {
+        await Swal.fire({
+          icon: 'success',
+          title: 'Added to cart',
+          text: data.message || 'Item added.',
+          timer: 1400,
+          showConfirmButton: false
+        });
+        updateCartCount();
+      } else if (data.status === 'auth') {
+        Swal.fire({
+          icon: 'info',
+          title: 'Please log in',
+          text: data.message || 'You must be logged in to add items.',
+          showCancelButton: true,
+          confirmButtonText: 'Login'
+        }).then(r => {
+          if (r.isConfirmed) {
+            window.location.href = 'login.php?next=' + encodeURIComponent('view/all_product.php');
+          }
+        });
+      } else {
+        Swal.fire({ icon: 'error', title: 'Could not add', text: data.message || 'Try again.' });
+      }
+    } catch (e) {
+      console.error(e);
+      Swal.fire({ icon: 'error', title: 'Network error', text: 'Please try again.' });
+    }
+  }
+
+  // Cart badge updater
+  async function updateCartCount() {
+    try {
+      const res = await fetch('../Actions/cart_count_action.php', { cache: 'no-store' });
+      const data = await res.json();
+      const el = document.getElementById('cart-count');
+      if (el) el.textContent = (data.count ?? 0);
+    } catch (e) {
+      console.error('Cart count fetch failed', e);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', updateCartCount);
+</script>
+
+
+<script>
+
+  document.addEventListener('DOMContentLoaded', updateCartCount);
+</script>
+
 
 </body>
 </html>

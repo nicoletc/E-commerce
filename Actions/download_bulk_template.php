@@ -62,5 +62,3 @@ header('Content-Length: ' . filesize($tmpName));
 readfile($tmpName);
 @unlink($tmpName);
 exit;
-
-?>
