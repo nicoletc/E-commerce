@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__.'/db_class.php';
+require_once '../settings/db_class.php';
 
-class order_class extends db_connection {
+class order_class extends Db {
 
   public function create_order(int $customer_id, int $invoice_no, string $status='paid'): int {
     $sql = "INSERT INTO orders (customer_id, invoice_no, order_date, order_status)

@@ -5,6 +5,6 @@ header('Content-Type: application/json');
 
 require_once __DIR__.'/../Controllers/cart_controller.php';
 
-$p = (int)($_POST['product_id'] ?? 0);
-$ok = $p ? remove_from_cart_ctr($p) : false;
-echo json_encode($ok ? ['status'=>'ok'] : ['status'=>'error','message'=>'Remove failed']);
+ $p = (int)($_POST['product_id'] ?? 0);
+ $ok = ($p) ? remove_from_cart_ctr(null, $p) : false;
+ echo json_encode($ok ? ['status'=>'ok'] : ['status'=>'error','message'=>'Remove failed']);

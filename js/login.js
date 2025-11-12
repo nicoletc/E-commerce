@@ -31,7 +31,22 @@ $(document).ready(function () {
             text:'Welcome back!',
             timer: 1200,
             showConfirmButton: false
-          }).then(() => window.location.href = '../index.php');
+          }).then(() => {
+            // if a next parameter is present in the login URL, redirect there
+            try {
+              const params = new URLSearchParams(window.location.search);
+              const next = params.get('next');
+              if (next) {
+                // decode and redirect; allow absolute or relative paths
+                const dest = decodeURIComponent(next);
+                window.location.href = dest;
+                return;
+              }
+            } catch (e) {
+              // fall back
+            }
+            window.location.href = '../index.php';
+          });
         } else {
           Swal.fire({icon:'error', title:'Login failed', text: res.message || 'Check your credentials.'});
         }

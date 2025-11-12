@@ -14,9 +14,7 @@ $customer = $_SESSION['customer_name'] ?? null;
 $isAdmin  = isset($_SESSION['user_role']) && (int)$_SESSION['user_role'] === 1;
 
 $first = $customer ? explode(' ', trim($customer))[0] : null;
-// $products = get_products_ctr();
-// $cats     = get_categories_ctr();   // <-- add this
-// $brands   = get_brands_ctr();       // <-- add this
+
 
 $cats     = get_categories_ctr();
 $brands   = get_brands_ctr();
@@ -158,11 +156,7 @@ foreach ($products as $p) { $grouped[$p['cat_name']][] = $p; }
           </div>
           <div class="actions">
             <a class="btn small glass" href="single_product.php?id=<?= htmlspecialchars($p['product_id']) ?>">View</a>
-            <?php if ($loggedIn): ?>
-              <a class="btn small ghost" href="javascript:void(0)" onclick="addToCart(<?= (int)$p['product_id'] ?>, 1)">Add to Cart</a>
-            <?php else: ?>
-              <a class="btn small ghost disabled" href="login.php" title="Please log in to add to cart">Add to Cart</a>
-            <?php endif; ?>
+              <a class="btn small ghost" href="#" data-add-pid="<?= (int)$p['product_id'] ?>">Add to Cart</a>
           </div>
         </article>
       <?php endforeach; ?>
@@ -178,45 +172,63 @@ foreach ($products as $p) { $grouped[$p['cat_name']][] = $p; }
 <script src="../js/products.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-  // exported from PHP so JS knows auth state
-  const isLoggedIn = <?= $loggedIn ? 'true' : 'false' ?>;
+<script type="module">
+  import { addToCart, updateCartCount } from '../js/cart.js';
 
-  // intercept clicks on product view links when not logged in
-  document.addEventListener('click', function (e) {
-    const a = e.target.closest('a[href*="single_product.php"]');
-    if (!a) return;
-    if (isLoggedIn) return; // allow navigation for logged-in users
-
-    e.preventDefault();
-
-    // get product id from link
-    const href = a.getAttribute('href');
-    let id = '';
+  // Ensure SweetAlert is available, try window.Swal, then dynamic import, then script injection
+  async function ensureSwal() {
+    if (window.Swal) return window.Swal;
     try {
-      const url = new URL(href, window.location.origin + '<?= dirname($_SERVER['REQUEST_URI']) ?>/');
-      id = url.searchParams.get('id') || '';
-    } catch (err) {
-      // fallback parse
-      const m = href.match(/[?&]id=(\d+)/);
-      if (m) id = m[1];
+      const mod = await import('https://cdn.jsdelivr.net/npm/sweetalert2@11');
+      if (mod && mod.default) return mod.default;
+    } catch (e) {
+      // dynamic import failed; try script injection
     }
-
-    Swal.fire({
-      title: 'Please log in',
-      text: 'You must be logged in to view product details.',
-      icon: 'info',
-      showCancelButton: true,
-      confirmButtonText: 'Login',
-      cancelButtonText: 'Cancel'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        // redirect to login with next param so user returns to product after logging in
-        const next = encodeURIComponent('single_product.php' + (id ? ('?id=' + id) : ''));
-        window.location.href = 'login.php?next=' + next;
-      }
+    return new Promise((resolve) => {
+      if (window.Swal) return resolve(window.Swal);
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+      s.onload = () => resolve(window.Swal ?? null);
+      s.onerror = () => resolve(null);
+      document.head.appendChild(s);
     });
-  }, false);
+  }
+
+  // Attach per-button click handlers after DOM is ready (more reliable than delegated in some setups)
+  document.addEventListener('DOMContentLoaded', function () {
+    const buttons = document.querySelectorAll('[data-add-pid]');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', async function (e) {
+        e.preventDefault();
+        const pid = this.getAttribute('data-add-pid');
+        if (!pid) return;
+        try {
+          console.debug('Add-to-cart clicked (button), pid=', pid);
+          const res = await addToCart(pid, 1);
+          if (res && res.status === 'ok') {
+            const Swal = await ensureSwal();
+            if (Swal && typeof Swal.fire === 'function') {
+              await Swal.fire({ icon: 'success', title: 'Added to cart', timer: 1100, showConfirmButton: false });
+            } else {
+              console.log('Added to cart');
+            }
+            if (typeof res.count !== 'undefined') {
+              const el = document.getElementById('cart-count'); if (el) el.textContent = String(res.count);
+            } else {
+              updateCartCount();
+            }
+          } else if (res && res.status === 'auth') {
+            window.location.href = 'login.php?next=' + encodeURIComponent('view/all_product.php');
+          } else {
+            console.error('Add to cart failed', res);
+          }
+        } catch (err) { console.error(err); }
+      });
+    });
+  });
+
+  // ensure badge shows up
+  document.addEventListener('DOMContentLoaded', () => updateCartCount());
 </script>
 
 <script>
@@ -233,11 +245,9 @@ foreach ($products as $p) { $grouped[$p['cat_name']][] = $p; }
 
     els.forEach(el => io.observe(el));
 
-    // Ensure the hero is visible immediately
     const hero = document.querySelector('.hero');
     if (hero) {
       hero.classList.add('visible');
-      // also reveal the blur-words inside the hero
       hero.querySelectorAll('.blur-words').forEach((el, i) => {
         setTimeout(() => el.classList.add('visible'), i * 80);
       });
@@ -246,68 +256,7 @@ foreach ($products as $p) { $grouped[$p['cat_name']][] = $p; }
 </script>
 
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-  // Add-to-cart (global)
-  async function addToCart(productId, qty = 1) {
-    try {
-      const res = await fetch('../Actions/add_to_cart_action.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-        body: new URLSearchParams({ product_id: productId, qty })
-      });
-      const data = await res.json();
-
-      if (data.status === 'ok') {
-        await Swal.fire({
-          icon: 'success',
-          title: 'Added to cart',
-          text: data.message || 'Item added.',
-          timer: 1400,
-          showConfirmButton: false
-        });
-        updateCartCount();
-      } else if (data.status === 'auth') {
-        Swal.fire({
-          icon: 'info',
-          title: 'Please log in',
-          text: data.message || 'You must be logged in to add items.',
-          showCancelButton: true,
-          confirmButtonText: 'Login'
-        }).then(r => {
-          if (r.isConfirmed) {
-            window.location.href = 'login.php?next=' + encodeURIComponent('view/all_product.php');
-          }
-        });
-      } else {
-        Swal.fire({ icon: 'error', title: 'Could not add', text: data.message || 'Try again.' });
-      }
-    } catch (e) {
-      console.error(e);
-      Swal.fire({ icon: 'error', title: 'Network error', text: 'Please try again.' });
-    }
-  }
-
-  // Cart badge updater
-  async function updateCartCount() {
-    try {
-      const res = await fetch('../Actions/cart_count_action.php', { cache: 'no-store' });
-      const data = await res.json();
-      const el = document.getElementById('cart-count');
-      if (el) el.textContent = (data.count ?? 0);
-    } catch (e) {
-      console.error('Cart count fetch failed', e);
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', updateCartCount);
-</script>
-
-
-<script>
-
-  document.addEventListener('DOMContentLoaded', updateCartCount);
-</script>
+<!-- bottom duplicate scripts removed; cart functions live in js/cart.js and module above -->
 
 
 </body>

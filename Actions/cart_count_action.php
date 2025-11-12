@@ -11,19 +11,12 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../Controllers/cart_controller.php';
 
 try {
-  // If not logged in, return 0 for now (guest carts later)
-  if (empty($_SESSION['customer_id'])) {
-    echo json_encode(['count' => 0]);
-    exit;
-  }
-
-  $cid = (int)$_SESSION['customer_id'];
-
-  // Prefer a lightweight count call if available; otherwise sum items
+  // Count for logged-in or guest holder (controller will resolve)
+  $cid = (int)($_SESSION['customer_id'] ?? 0);
   if (function_exists('count_cart_items_ctr')) {
-    $count = (int)count_cart_items_ctr($cid);
+    $count = (int)count_cart_items_ctr($cid ?: null);
   } else {
-    $items = get_user_cart_ctr($cid);          // must return an array of rows with 'qty'
+    $items = get_user_cart_ctr($cid ?: null);          // must return an array of rows with 'qty'
     $count = 0;
     foreach ((array)$items as $row) {
       $count += (int)($row['qty'] ?? 0);

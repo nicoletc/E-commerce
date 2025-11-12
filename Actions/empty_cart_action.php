@@ -4,5 +4,6 @@ if (session_status()===PHP_SESSION_NONE) session_start();
 header('Content-Type: application/json');
 
 require_once __DIR__.'/../Controllers/cart_controller.php';
-$ok = empty_cart_ctr();
-echo json_encode($ok ? ['status'=>'ok'] : ['status'=>'error','message'=>'Could not empty cart']);
+
+ $ok = empty_cart_ctr(null);
+ echo json_encode($ok ? ['status'=>'ok'] : ['status'=>'error','message'=>'Could not empty cart']);

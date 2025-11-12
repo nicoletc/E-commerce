@@ -42,7 +42,7 @@ html { scroll-behavior:smooth; }
   color:#ddd7f4; text-decoration:none; margin:0 10px; padding:8px 10px; border-radius:10px; transition:.2s;
 }
 .links a:hover{ background:rgba(255,255,255,.06); }
-.actions{ display:flex; gap:10px; }
+.actions{ display:flex; gap:10px; margin-right:40px; }
 .btn{
   display:inline-flex; align-items:center; justify-content:center;
   padding:10px 14px; border-radius:12px; text-decoration:none; font-weight:700; color:#fff;

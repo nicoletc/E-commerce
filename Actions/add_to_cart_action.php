@@ -7,18 +7,21 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/../Controllers/cart_controller.php';
 require_once __DIR__ . '/../Controllers/product_controller.php';
 
-$c_id = (int)($_SESSION['customer_id'] ?? 0);
-$p_id = (int)($_POST['product_id'] ?? 0);
-$qty  = max(1, (int)($_POST['qty'] ?? 1));
-$ip   = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+ $p_id = (int)($_POST['product_id'] ?? 0);
+ $qty  = max(1, (int)($_POST['qty'] ?? 1));
+ $ip   = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
 
+ if ($p_id <= 0) { echo json_encode(['status'=>'error','message'=>'Invalid product']); exit; }
 
-if ($c_id <= 0) { echo json_encode(['status'=>'auth','message'=>'Login required']); exit; }
-if ($p_id <= 0) { echo json_encode(['status'=>'error','message'=>'Invalid product']); exit; }
-
-
-$ok = add_to_cart_ctr($c_id, $p_id, $qty, $ip);
-echo json_encode($ok ? ['status'=>'ok','message'=>'Added to cart'] : ['status'=>'error','message'=>'Failed to add']);
+ // pass null for customer id so controller can resolve guest token if needed
+ $ok = add_to_cart_ctr(null, $p_id, $qty, $ip);
+if ($ok) {
+	// return updated cart count for immediate UI update
+	$count = function_exists('count_cart_items_ctr') ? (int)count_cart_items_ctr(null) : 0;
+	echo json_encode(['status'=>'ok','message'=>'Added to cart', 'count' => $count]);
+} else {
+	echo json_encode(['status'=>'error','message'=>'Failed to add']);
+}
 
 
