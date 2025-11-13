@@ -1,4 +1,16 @@
 
+<?php
+// Capture a `next` query parameter into session so AJAX login can use it.
+if (session_status() === PHP_SESSION_NONE) session_start();
+if (!empty($_GET['next'])) {
+  $next = (string)$_GET['next'];
+  // Basic sanity: disallow full absolute URLs to avoid open-redirects
+  if (!preg_match('#^https?://#i', $next)) {
+    // store raw value; client-side code will still validate/encode
+    $_SESSION['post_login_next'] = $next;
+  }
+}
+?>
 <!doctype html>
 <html lang="en">
 <head>

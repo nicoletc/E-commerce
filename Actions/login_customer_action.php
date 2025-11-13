@@ -32,7 +32,13 @@ try {
                 }
 
         http_response_code(200);
-        echo json_encode(['status'=>'success','message'=>'Login successful.']);
+            // If the login page previously stored a `post_login_next` in session, return it
+            $payload = ['status'=>'success','message'=>'Login successful.'];
+            if (!empty($_SESSION['post_login_next'])) {
+                $payload['next'] = $_SESSION['post_login_next'];
+                unset($_SESSION['post_login_next']);
+            }
+            echo json_encode($payload);
     } else {
         http_response_code(401);
         echo json_encode($res);
