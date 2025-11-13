@@ -29,7 +29,7 @@
 
         <section class="auth-form slide-right">
           <h1 class="auth-title fade-blur">Get Right Back In!</h1>
-          <p class="auth-sub fade-blur delay">New here? <a href="register.php">Create an account</a></p>
+          <p class="auth-sub fade-blur delay">New here? <a id="to-register-link" href="register.php">Create an account</a></p>
 
           <form id="login-form" novalidate>
             <div class="field">
@@ -59,7 +59,19 @@
 
 
   <script>
-    window.addEventListener('DOMContentLoaded', () => document.body.classList.add('loaded'));
+    // If the login page was opened with a `next` query param, propagate it
+    // to the register link so users who create an account are returned to `next`.
+    (function (){
+      try{
+        const params = new URLSearchParams(window.location.search);
+        const next = params.get('next');
+        if (next) {
+          const a = document.getElementById('to-register-link');
+          if (a) a.href = 'register.php?next=' + encodeURIComponent(next);
+        }
+      } catch (e) { /* ignore */ }
+      window.addEventListener('DOMContentLoaded', () => document.body.classList.add('loaded'));
+    })();
   </script>
 </body>
 </html>

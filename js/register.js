@@ -58,7 +58,17 @@ $(document).ready(function () {
       success: function (res) {
         if (res.status === 'success' || res.ok === true) {
           Swal.fire({icon:'success', title:'Success', text:res.message || 'Registration successful.'})
-            .then(() => window.location.href = 'login.php');
+            .then(() => {
+              // If register.php was opened with a `next` param, pass it back to login.php
+              try {
+                const params = new URLSearchParams(window.location.search);
+                const next = params.get('next');
+                const dest = next ? ('login.php?next=' + encodeURIComponent(next)) : 'login.php';
+                window.location.href = dest;
+              } catch (e) {
+                window.location.href = 'login.php';
+              }
+            });
         } else {
           Swal.fire({icon:'error', title:'Oops...', text:res.message || 'Registration failed.'});
         }

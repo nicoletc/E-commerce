@@ -128,15 +128,24 @@ class cart_class extends Db
    * Migrate cart items for a guest token into a customer id.
    * If $token is null, attempt to use session cookie or leave as-is.
    */
-  public function migrate_guest_to_user(int $c_id, ?string $token = null): void
+  /**
+   * Migrate cart items for a guest token into a customer id.
+   * Returns true on success, false otherwise.
+   */
+  public function migrate_guest_to_user(int $c_id, ?string $token = null): bool
   {
     if (empty($token)) {
       // try cookie or nothing
       if (!empty($_COOKIE['cart_token'])) $token = $_COOKIE['cart_token'];
-      if (empty($token)) return;
+      if (empty($token)) return false;
     }
-    $sql   = "UPDATE cart SET c_id=?, ip_add=NULL WHERE ip_add=?";
+    // Some schemas mark ip_add NOT NULL; set it to empty string for migrated rows
+    // (this matches how authenticated rows are inserted elsewhere).
+    $sql   = "UPDATE cart SET c_id=?, ip_add='' WHERE ip_add=?";
     $st    = $this->db->prepare($sql);
-    $st->execute([$c_id, $token]);
+    $ok = $st->execute([$c_id, $token]);
+    if (!$ok) return false;
+    // Only consider migration successful if at least one row was updated
+    return ($st->rowCount() > 0);
   }
 }

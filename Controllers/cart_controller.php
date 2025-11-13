@@ -23,6 +23,10 @@ function resolve_cart_holder(?int $cid = null)
   if (empty($_SESSION['guest_holder'])) {
     // use a short random token
     $_SESSION['guest_holder'] = bin2hex(random_bytes(8));
+    // Also persist the token in a cookie so migration still works if the PHP
+    // session id changes or is lost between requests (e.g. user registers)
+    // cookie lasts 30 days, HttpOnly where possible
+    setcookie('cart_token', $_SESSION['guest_holder'], time() + 60*60*24*30, '/', '', false, true);
   }
   return ['type' => 'guest', 'id' => $_SESSION['guest_holder']];
 }
@@ -117,9 +121,20 @@ function migrate_guest_cart_ctr(?int $c_id = null)
   $cid = resolve_customer_id($c_id);
   if ($cid <= 0) return false;
   // if there is a guest token, migrate
+  $token = null;
   if (!empty($_SESSION['guest_holder'])) {
-    $c = new cart_class();
-    return $c->migrate_guest_to_user($cid, $_SESSION['guest_holder']);
+    $token = $_SESSION['guest_holder'];
+  } elseif (!empty($_COOKIE['cart_token'])) {
+    $token = $_COOKIE['cart_token'];
   }
-  return false;
+  if (empty($token)) return false;
+  $c = new cart_class();
+  $ok = $c->migrate_guest_to_user($cid, $token);
+  if ($ok) {
+    // Remove guest token so future requests use the authenticated cart only
+    if (!empty($_SESSION['guest_holder'])) unset($_SESSION['guest_holder']);
+    // expire cookie
+    setcookie('cart_token', '', time() - 3600, '/', '', false, true);
+  }
+  return $ok;
 }
