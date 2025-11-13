@@ -30,7 +30,7 @@ class product_class extends Db{
 
     /** CREATE */
     public function add_product(array $p): int {
-        $sql = "INSERT IGNORE INTO products
+        $sql = "INSERT INTO products
                 (product_cat, product_brand, product_title, product_price,
                  product_desc, product_image, product_keywords)
                 VALUES (:cat,:brand,:title,:price,:descr,:image,:kw)";
