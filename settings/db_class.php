@@ -7,7 +7,7 @@ class Db {
 
     public function __construct() {
         $dsn = sprintf(
-            'mysql:host=%s;port=%d;dbname=%s;charset=%s',
+            'mysql:host=%s;port=%d;dbname=%s;',
             DB_HOST, DB_PORT, DB_NAME
         );
 
