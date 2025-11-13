@@ -8,7 +8,7 @@ error_reporting(E_ALL);
 require_once __DIR__ . '/../settings/core.php';
 require_once __DIR__ . '/../settings/db_class.php';
 
-header('Content-Type: application/json; charset=utf-8');
+header('Content-Type: application/json');
 
 // Must be logged in
 if (!is_logged_in()) {
