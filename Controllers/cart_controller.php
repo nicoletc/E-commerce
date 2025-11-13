@@ -1,9 +1,10 @@
 <?php
-require_once __DIR__.'/../Classes/cart_class.php';
+require_once __DIR__ . '/../Classes/cart_class.php';
 require_once __DIR__ . '/../settings/core.php';
 
 // Helper to resolve customer id from parameter or session
-function resolve_customer_id(?int $cid = null): int {
+function resolve_customer_id(?int $cid = null): int
+{
   if ($cid && $cid > 0) return $cid;
   return (int)($_SESSION['customer_id'] ?? 0);
 }
@@ -13,7 +14,8 @@ function resolve_customer_id(?int $cid = null): int {
  * - type: 'customer' or 'guest'
  * - id: customer id (int) or token (string)
  */
-function resolve_cart_holder(?int $cid = null){
+function resolve_cart_holder(?int $cid = null)
+{
   $c = resolve_customer_id($cid);
   if ($c > 0) return ['type' => 'customer', 'id' => $c];
 
@@ -28,7 +30,8 @@ function resolve_cart_holder(?int $cid = null){
 /**
  * Add to cart. If $customer_id is omitted, the function will use the session customer id.
  */
-function add_to_cart_ctr(?int $customer_id, int $product_id, int $qty = 1, string $ip = '0.0.0.0') {
+function add_to_cart_ctr(?int $customer_id, int $product_id, int $qty = 1, string $ip = '0.0.0.0')
+{
   $holder = resolve_cart_holder($customer_id);
   $m = new cart_class();
   if ($holder['type'] === 'customer') {
@@ -41,7 +44,8 @@ function add_to_cart_ctr(?int $customer_id, int $product_id, int $qty = 1, strin
 /**
  * Update quantity for a cart item. $customer_id optional.
  */
-function update_cart_item_ctr(?int $customer_id, int $p_id, int $qty){
+function update_cart_item_ctr(?int $customer_id, int $p_id, int $qty)
+{
   $holder = resolve_cart_holder($customer_id);
   $c = new cart_class();
   if ($holder['type'] === 'customer') {
@@ -53,7 +57,8 @@ function update_cart_item_ctr(?int $customer_id, int $p_id, int $qty){
 /**
  * Remove an item from cart. $customer_id optional.
  */
-function remove_from_cart_ctr(?int $customer_id, int $p_id){
+function remove_from_cart_ctr(?int $customer_id, int $p_id)
+{
   $holder = resolve_cart_holder($customer_id);
   $c = new cart_class();
   if ($holder['type'] === 'customer') {
@@ -65,7 +70,8 @@ function remove_from_cart_ctr(?int $customer_id, int $p_id){
 /**
  * Get cart items for a customer. If omitted, uses session customer id.
  */
-function get_user_cart_ctr(?int $c_id = null) {
+function get_user_cart_ctr(?int $c_id = null)
+{
   $holder = resolve_cart_holder($c_id);
   $m = new cart_class();
   if ($holder['type'] === 'customer') {
@@ -74,7 +80,8 @@ function get_user_cart_ctr(?int $c_id = null) {
   return $m->get_cart_items_by_token($holder['id']);
 }
 
-function count_cart_items_ctr(?int $c_id = null): int {
+function count_cart_items_ctr(?int $c_id = null): int
+{
   $holder = resolve_cart_holder($c_id);
   $m = new cart_class();
   if ($holder['type'] === 'customer') {
@@ -83,7 +90,8 @@ function count_cart_items_ctr(?int $c_id = null): int {
   return (int)$m->count_items_by_token($holder['id']);
 }
 
-function empty_cart_ctr(?int $c_id = null){
+function empty_cart_ctr(?int $c_id = null)
+{
   $holder = resolve_cart_holder($c_id);
   $c = new cart_class();
   if ($holder['type'] === 'customer') {
@@ -92,21 +100,24 @@ function empty_cart_ctr(?int $c_id = null){
   return $c->empty_cart_by_token($holder['id']);
 }
 
-function count_cart_ctr(?int $c_id = null){
+function count_cart_ctr(?int $c_id = null)
+{
   return count_cart_items_ctr($c_id);
 }
 
-function current_cart_holder_ctr(){
+function current_cart_holder_ctr()
+{
   // Return current holder info for debugging/clients
   $holder = resolve_cart_holder(null);
   return $holder;
 }
 
-function migrate_guest_cart_ctr(?int $c_id = null){
+function migrate_guest_cart_ctr(?int $c_id = null)
+{
   $cid = resolve_customer_id($c_id);
   if ($cid <= 0) return false;
   // if there is a guest token, migrate
-  if (!empty($_SESSION['guest_holder'])){
+  if (!empty($_SESSION['guest_holder'])) {
     $c = new cart_class();
     return $c->migrate_guest_to_user($cid, $_SESSION['guest_holder']);
   }
