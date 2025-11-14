@@ -1,4 +1,15 @@
 
+<?php
+// Persist `next` into session when register.php is visited so subsequent
+// login requests can use it even if client-side JS fails or is blocked.
+if (session_status() === PHP_SESSION_NONE) session_start();
+if (!empty($_GET['next'])) {
+  $next = (string)$_GET['next'];
+  if (!preg_match('#^https?://#i', $next)) {
+    $_SESSION['post_login_next'] = $next;
+  }
+}
+?>
 <!doctype html>
 <html lang="en">
 <head>

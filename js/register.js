@@ -64,6 +64,8 @@ $(document).ready(function () {
                 const params = new URLSearchParams(window.location.search);
                 const next = params.get('next');
                 const dest = next ? ('login.php?next=' + encodeURIComponent(next)) : 'login.php';
+                // Dev debug: log the intended redirect destination
+                try { console.debug('register redirect to', dest, 'parsed next=', next); } catch (e) {}
                 window.location.href = dest;
               } catch (e) {
                 window.location.href = 'login.php';
