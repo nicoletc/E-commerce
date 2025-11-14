@@ -78,9 +78,13 @@ if (!empty($_GET['next'])) {
         const params = new URLSearchParams(window.location.search);
         const next = params.get('next');
         if (next) {
-          const a = document.getElementById('to-register-link');
-          if (a) a.href = 'register.php?next=' + encodeURIComponent(next);
-        }
+            const a = document.getElementById('to-register-link');
+            if (a) a.href = 'register.php?next=' + encodeURIComponent(next);
+            // Store the full login URL in sessionStorage so it can be reused
+            // after the user creates an account and returns. This helps when
+            // server-side session or query params get lost during navigation.
+            try { sessionStorage.setItem('login_return_url', window.location.href); } catch (e) { /* ignore */ }
+          }
       } catch (e) { /* ignore */ }
       window.addEventListener('DOMContentLoaded', () => document.body.classList.add('loaded'));
     })();

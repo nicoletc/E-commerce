@@ -42,7 +42,7 @@ if (!empty($_GET['next'])) {
 
         <section class="auth-form slide-right">
           <h1 class="auth-title fade-blur">Create an account</h1>
-          <p class="auth-sub fade-blur delay">Already have an account? <a href="login.php">Log in</a></p>
+          <p class="auth-sub fade-blur delay">Already have an account? <a id="to-login-link" href="login.php">Log in</a></p>
 
           <div id="register-msg" class="alert info" role="status" style="display:none"></div>
 
@@ -154,7 +154,31 @@ if (!empty($_GET['next'])) {
 
 
   <script>
-    window.addEventListener('DOMContentLoaded', () => document.body.classList.add('loaded'));
+    // If the register page was opened without a `next` on the login link,
+    // try to fill it using a stored login URL (from sessionStorage). This
+    // helps when the client navigation lost the query string on some servers.
+    (function(){
+      try{
+        const a = document.getElementById('to-login-link');
+        if (a) {
+          const params = new URLSearchParams(a.search || window.location.search || '');
+          // If the href already includes next, leave it alone. Otherwise try stored value.
+          if (!/\bnext=/.test(a.href)) {
+            const stored = sessionStorage.getItem('login_return_url');
+            if (stored && stored.indexOf('login.php') !== -1) {
+              // Use the stored full login URL
+              a.href = stored;
+            } else {
+              // fallback: preserve any next passed to register.php
+              const p = new URLSearchParams(window.location.search);
+              const next = p.get('next');
+              if (next) a.href = 'login.php?next=' + encodeURIComponent(next);
+            }
+          }
+        }
+      } catch (e) { /* ignore */ }
+      window.addEventListener('DOMContentLoaded', () => document.body.classList.add('loaded'));
+    })();
   </script>
 </body>
 </html>

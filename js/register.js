@@ -59,12 +59,22 @@ $(document).ready(function () {
         if (res.status === 'success' || res.ok === true) {
           Swal.fire({icon:'success', title:'Success', text:res.message || 'Registration successful.'})
             .then(() => {
-              // If register.php was opened with a `next` param, pass it back to login.php
+              // Prefer a stored login URL (saved when the user first landed on login.php)
+              // This avoids losing the `next` param if it was stripped during navigation.
+              try {
+                const stored = sessionStorage.getItem('login_return_url');
+                if (stored && stored.indexOf('login.php') !== -1) {
+                  try { console.debug('register using stored login url', stored); } catch (e) {}
+                  window.location.href = stored;
+                  return;
+                }
+              } catch (e) { /* ignore */ }
+
+              // Fallback: use next query param on register page, else plain login
               try {
                 const params = new URLSearchParams(window.location.search);
                 const next = params.get('next');
                 const dest = next ? ('login.php?next=' + encodeURIComponent(next)) : 'login.php';
-                // Dev debug: log the intended redirect destination
                 try { console.debug('register redirect to', dest, 'parsed next=', next); } catch (e) {}
                 window.location.href = dest;
               } catch (e) {
